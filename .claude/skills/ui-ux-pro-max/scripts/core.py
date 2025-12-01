@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-UI/UX Pro Max Core - Shared components for search and plan generation
+UI/UX Pro Max Core - BM25 search engine for UI/UX style guides
 """
 
 import csv
@@ -45,11 +45,6 @@ CSV_CONFIG = {
         "search_cols": ["Product Type", "Keywords", "Primary Style Recommendation", "Key Considerations"],
         "output_cols": ["Product Type", "Keywords", "Primary Style Recommendation", "Secondary Styles", "Landing Page Pattern", "Dashboard Style (if applicable)", "Color Palette Focus"]
     },
-    "quick": {
-        "file": "quick-ref.csv",
-        "search_cols": ["Style Name", "Best For", "Category"],
-        "output_cols": ["Style Name", "Type", "Best For", "Primary Colors", "Performance", "Accessibility", "Mobile", "Dark Mode"]
-    },
     "ux": {
         "file": "ux-guidelines.csv",
         "search_cols": ["Category", "Issue", "Description", "Platform"],
@@ -62,48 +57,21 @@ CSV_CONFIG = {
     }
 }
 
-# Stack-specific configurations (separate from main CSV_CONFIG)
 STACK_CONFIG = {
-    "html-tailwind": {
-        "file": "stacks/html-tailwind.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "react": {
-        "file": "stacks/react.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "nextjs": {
-        "file": "stacks/nextjs.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "vue": {
-        "file": "stacks/vue.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "svelte": {
-        "file": "stacks/svelte.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "swiftui": {
-        "file": "stacks/swiftui.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "react-native": {
-        "file": "stacks/react-native.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    },
-    "flutter": {
-        "file": "stacks/flutter.csv",
-        "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
-        "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
-    }
+    "html-tailwind": {"file": "stacks/html-tailwind.csv"},
+    "react": {"file": "stacks/react.csv"},
+    "nextjs": {"file": "stacks/nextjs.csv"},
+    "vue": {"file": "stacks/vue.csv"},
+    "svelte": {"file": "stacks/svelte.csv"},
+    "swiftui": {"file": "stacks/swiftui.csv"},
+    "react-native": {"file": "stacks/react-native.csv"},
+    "flutter": {"file": "stacks/flutter.csv"}
+}
+
+# Common columns for all stacks
+_STACK_COLS = {
+    "search_cols": ["Category", "Guideline", "Description", "Do", "Don't"],
+    "output_cols": ["Category", "Guideline", "Description", "Do", "Don't", "Code Good", "Code Bad", "Severity", "Docs URL"]
 }
 
 AVAILABLE_STACKS = list(STACK_CONFIG.keys())
@@ -125,8 +93,7 @@ class BM25:
 
     def tokenize(self, text):
         """Lowercase, split, remove punctuation, filter short words"""
-        text = str(text).lower()
-        text = re.sub(r'[^\w\s]', ' ', text)
+        text = re.sub(r'[^\w\s]', ' ', str(text).lower())
         return [w for w in text.split() if len(w) > 2]
 
     def fit(self, documents):
@@ -173,22 +140,35 @@ class BM25:
         return sorted(scores, key=lambda x: x[1], reverse=True)
 
 
-# ============ UTILITY FUNCTIONS ============
-def load_csv(filepath):
+# ============ SEARCH FUNCTIONS ============
+def _load_csv(filepath):
     """Load CSV and return list of dicts"""
     with open(filepath, 'r', encoding='utf-8') as f:
         return list(csv.DictReader(f))
 
 
-def regex_search(data, query, search_cols):
-    """Exact/regex matching for specific patterns"""
-    pattern = re.compile(re.escape(query), re.IGNORECASE)
+def _search_csv(filepath, search_cols, output_cols, query, max_results):
+    """Core search function using BM25"""
+    if not filepath.exists():
+        return []
+
+    data = _load_csv(filepath)
+
+    # Build documents from search columns
+    documents = [" ".join(str(row.get(col, "")) for col in search_cols) for row in data]
+
+    # BM25 search
+    bm25 = BM25()
+    bm25.fit(documents)
+    ranked = bm25.score(query)
+
+    # Get top results with score > 0
     results = []
-    for idx, row in enumerate(data):
-        for col in search_cols:
-            if col in row and pattern.search(str(row[col])):
-                results.append((idx, 100))
-                break
+    for idx, score in ranked[:max_results]:
+        if score > 0:
+            row = data[idx]
+            results.append({col: row.get(col, "") for col in output_cols if col in row})
+
     return results
 
 
@@ -197,73 +177,19 @@ def detect_domain(query):
     query_lower = query.lower()
 
     domain_keywords = {
-        "color": ["color", "palette", "hex", "#", "rgb", "financial", "sales", "marketing", "healthcare", "it", "devops", "hr"],
-        "chart": ["chart", "graph", "visualization", "trend", "bar", "pie", "scatter", "heatmap", "funnel", "gauge", "line"],
-        "landing": ["landing", "page", "cta", "conversion", "hero", "testimonial", "form", "pricing", "section"],
-        "product": ["saas", "ecommerce", "e-commerce", "fintech", "healthcare", "gaming", "portfolio", "agency", "crypto", "social", "productivity"],
-        "prompt": ["prompt", "css", "implementation", "variable", "checklist", "code", "tailwind", "styled"],
-        "quick": ["quick", "summary", "overview", "all styles", "list", "compare"],
-        "style": ["style", "design", "ui", "minimalism", "glassmorphism", "neumorphism", "brutalism", "dark mode", "flat", "3d", "aurora", "retro"],
-        "ux": ["ux", "user experience", "usability", "accessibility", "wcag", "touch", "scroll", "animation", "focus", "keyboard", "screen reader", "loading", "error", "validation", "feedback", "navigation", "mobile", "responsive", "performance", "z-index", "overflow"]
+        "color": ["color", "palette", "hex", "#", "rgb"],
+        "chart": ["chart", "graph", "visualization", "trend", "bar", "pie", "scatter", "heatmap", "funnel"],
+        "landing": ["landing", "page", "cta", "conversion", "hero", "testimonial", "pricing", "section"],
+        "product": ["saas", "ecommerce", "e-commerce", "fintech", "healthcare", "gaming", "portfolio", "crypto", "dashboard"],
+        "prompt": ["prompt", "css", "implementation", "variable", "checklist", "tailwind"],
+        "style": ["style", "design", "ui", "minimalism", "glassmorphism", "neumorphism", "brutalism", "dark mode", "flat", "aurora"],
+        "ux": ["ux", "usability", "accessibility", "wcag", "touch", "scroll", "animation", "keyboard", "navigation", "mobile"],
+        "typography": ["font", "typography", "heading", "serif", "sans"]
     }
 
-    scores = {domain: 0 for domain in domain_keywords}
-    for domain, keywords in domain_keywords.items():
-        for keyword in keywords:
-            if keyword in query_lower:
-                scores[domain] += 1
-
-    best_domain = max(scores, key=scores.get)
-    return best_domain if scores[best_domain] > 0 else "style"
-
-
-def search_domain(query, domain, max_results=MAX_RESULTS):
-    """Search a specific domain and return results"""
-    config = CSV_CONFIG.get(domain)
-    if not config:
-        return []
-
-    filepath = DATA_DIR / config["file"]
-    if not filepath.exists():
-        return []
-
-    data = load_csv(filepath)
-    search_cols = config["search_cols"]
-    output_cols = config["output_cols"]
-
-    documents = []
-    for row in data:
-        doc_text = " ".join(str(row.get(col, "")) for col in search_cols)
-        documents.append(doc_text)
-
-    bm25 = BM25()
-    bm25.fit(documents)
-    bm25_results = bm25.score(query)
-
-    regex_results = regex_search(data, query, search_cols)
-
-    seen = set()
-    merged = []
-    for idx, score in regex_results:
-        if idx not in seen:
-            merged.append((idx, score + 50))
-            seen.add(idx)
-
-    for idx, score in bm25_results:
-        if idx not in seen and score > 0:
-            merged.append((idx, score))
-            seen.add(idx)
-
-    merged.sort(key=lambda x: x[1], reverse=True)
-    top_indices = [idx for idx, _ in merged[:max_results]]
-
-    results = []
-    for idx in top_indices:
-        row = data[idx]
-        filtered_row = {col: row.get(col, "") for col in output_cols if col in row}
-        results.append(filtered_row)
-
-    return results
+    scores = {domain: sum(1 for kw in keywords if kw in query_lower) for domain, keywords in domain_keywords.items()}
+    best = max(scores, key=scores.get)
+    return best if scores[best] > 0 else "style"
 
 
 def search(query, domain=None, max_results=MAX_RESULTS):
@@ -277,7 +203,7 @@ def search(query, domain=None, max_results=MAX_RESULTS):
     if not filepath.exists():
         return {"error": f"File not found: {filepath}", "domain": domain}
 
-    results = search_domain(query, domain, max_results)
+    results = _search_csv(filepath, config["search_cols"], config["output_cols"], query, max_results)
 
     return {
         "domain": domain,
@@ -290,55 +216,21 @@ def search(query, domain=None, max_results=MAX_RESULTS):
 
 def search_stack(query, stack, max_results=MAX_RESULTS):
     """Search stack-specific guidelines"""
-    config = STACK_CONFIG.get(stack)
-    if not config:
+    if stack not in STACK_CONFIG:
         return {"error": f"Unknown stack: {stack}. Available: {', '.join(AVAILABLE_STACKS)}"}
 
-    filepath = DATA_DIR / config["file"]
+    filepath = DATA_DIR / STACK_CONFIG[stack]["file"]
+
     if not filepath.exists():
         return {"error": f"Stack file not found: {filepath}", "stack": stack}
 
-    data = load_csv(filepath)
-    search_cols = config["search_cols"]
-    output_cols = config["output_cols"]
-
-    documents = []
-    for row in data:
-        doc_text = " ".join(str(row.get(col, "")) for col in search_cols)
-        documents.append(doc_text)
-
-    bm25 = BM25()
-    bm25.fit(documents)
-    bm25_results = bm25.score(query)
-
-    regex_results = regex_search(data, query, search_cols)
-
-    seen = set()
-    merged = []
-    for idx, score in regex_results:
-        if idx not in seen:
-            merged.append((idx, score + 50))
-            seen.add(idx)
-
-    for idx, score in bm25_results:
-        if idx not in seen and score > 0:
-            merged.append((idx, score))
-            seen.add(idx)
-
-    merged.sort(key=lambda x: x[1], reverse=True)
-    top_indices = [idx for idx, _ in merged[:max_results]]
-
-    results = []
-    for idx in top_indices:
-        row = data[idx]
-        filtered_row = {col: row.get(col, "") for col in output_cols if col in row}
-        results.append(filtered_row)
+    results = _search_csv(filepath, _STACK_COLS["search_cols"], _STACK_COLS["output_cols"], query, max_results)
 
     return {
         "domain": "stack",
         "stack": stack,
         "query": query,
-        "file": config["file"],
+        "file": STACK_CONFIG[stack]["file"],
         "count": len(results),
         "results": results
     }

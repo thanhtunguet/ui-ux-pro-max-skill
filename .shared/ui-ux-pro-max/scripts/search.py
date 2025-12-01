@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-UI/UX Pro Max Search - BM25 + Regex hybrid search for UI/UX style guides
+UI/UX Pro Max Search - BM25 search engine for UI/UX style guides
 Usage: python search.py "<query>" [--domain <domain>] [--stack <stack>] [--max-results 3]
 
-Domains: style, prompt, color, chart, landing, product, quick, ux
+Domains: style, prompt, color, chart, landing, product, ux, typography
 Stacks: html-tailwind, react, nextjs
 """
 
