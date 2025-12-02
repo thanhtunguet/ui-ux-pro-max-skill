@@ -1,10 +1,10 @@
 {
-  "name": "uxpro-cli",
+  "name": "uipro-cli",
   "version": "1.0.0",
   "description": "CLI to install UI/UX Pro Max skill for AI coding assistants",
   "type": "module",
   "bin": {
-    "uxpro": "./dist/index.js"
+    "uipro": "./dist/index.js"
   },
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target node",

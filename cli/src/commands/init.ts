@@ -77,7 +77,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     // Download
     spinner.text = 'Downloading...';
-    const tempDir = join(tmpdir(), `uxpro-${Date.now()}`);
+    const tempDir = join(tmpdir(), `uipro-${Date.now()}`);
     await mkdir(tempDir, { recursive: true });
 
     const zipPath = join(tempDir, 'release.zip');

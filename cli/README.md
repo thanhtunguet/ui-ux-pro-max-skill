@@ -1,27 +1,27 @@
-# uxpro-cli
+# uipro-cli
 
 CLI to install UI/UX Pro Max skill for AI coding assistants.
 
 ## Installation
 
 ```bash
-npm install -g uxpro-cli
+npm install -g uipro-cli
 ```
 
 ## Usage
 
 ```bash
 # Install for specific AI assistant
-uxpro init --ai claude      # Claude Code
-uxpro init --ai cursor      # Cursor
-uxpro init --ai windsurf    # Windsurf
-uxpro init --ai antigravity # Antigravity
-uxpro init --ai all         # All assistants
+uipro init --ai claude      # Claude Code
+uipro init --ai cursor      # Cursor
+uipro init --ai windsurf    # Windsurf
+uipro init --ai antigravity # Antigravity
+uipro init --ai all         # All assistants
 
 # Other commands
-uxpro versions              # List available versions
-uxpro update                # Update to latest version
-uxpro init --version v1.0.0 # Install specific version
+uipro versions              # List available versions
+uipro update                # Update to latest version
+uipro init --version v1.0.0 # Install specific version
 ```
 
 ## Development
@@ -42,4 +42,4 @@ bun link
 
 ## License
 
-MIT
+CC-BY-NC-4.0

@@ -21,25 +21,25 @@ UI UX Pro Max is a searchable database of UI styles, color palettes, font pairin
 
 ```bash
 # Install CLI globally
-npm install -g uxpro-cli
+npm install -g uipro-cli
 
 # Go to your project
 cd /path/to/your/project
 
 # Install for your AI assistant
-uxpro init --ai claude      # Claude Code
-uxpro init --ai cursor      # Cursor
-uxpro init --ai windsurf    # Windsurf
-uxpro init --ai antigravity # Antigravity (.agent + .shared)
-uxpro init --ai all         # All assistants
+uipro init --ai claude      # Claude Code
+uipro init --ai cursor      # Cursor
+uipro init --ai windsurf    # Windsurf
+uipro init --ai antigravity # Antigravity (.agent + .shared)
+uipro init --ai all         # All assistants
 ```
 
 ### Other CLI Commands
 
 ```bash
-uxpro versions              # List available versions
-uxpro update                # Update to latest version
-uxpro init --version v1.0.0 # Install specific version
+uipro versions              # List available versions
+uipro update                # Update to latest version
+uipro init --version v1.0.0 # Install specific version
 ```
 
 ### Manual Installation
@@ -75,7 +75,7 @@ winget install Python.Python.3.12
 
 ```
 ui-ux-pro-max-skill/
-├── cli/                              # CLI installer (uxpro-cli)
+├── cli/                              # CLI installer (uipro-cli)
 │   ├── package.json
 │   └── src/
 ├── .claude/skills/ui-ux-pro-max/     # Claude Code skill
